@@ -4,7 +4,8 @@ import { createClient } from "@/utils/supabase/client";
 import { signOut } from "@/app/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
+import { Listbox, Transition, Button } from "@headlessui/react";
 
 interface Category {
   id: number;
@@ -170,22 +171,94 @@ export default function AddModelPage() {
             >
               Category *
             </label>
-            <select
-              id="category_id"
-              name="category_id"
+            <Listbox
               value={formData.category_id}
-              onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d26a]/20 focus:border-[#00d26a] transition-colors bg-white ${
-                errors.category_id ? "border-red-300" : "border-gray-200"
-              }`}
+              onChange={(value) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  category_id: String(value),
+                }));
+                setErrors((prev) => ({ ...prev, category_id: undefined }));
+              }}
             >
-              <option value="">Select category</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name} ({category.code})
-                </option>
-              ))}
-            </select>
+              <div className="relative mt-1">
+                <Listbox.Button
+                  className={`relative w-full cursor-pointer rounded-lg bg-white py-2 pl-3 pr-10 text-left border focus:outline-none focus-visible:border-[#1769ff] focus-visible:ring-2 focus-visible:ring-[#1769ff]/20 transition-colors ${
+                    errors.category_id ? "border-red-300" : "border-gray-200"
+                  }`}
+                >
+                  <span className="block truncate">
+                    {categories.find(
+                      (c) => c.id === parseInt(formData.category_id),
+                    )
+                      ? `${categories.find((c) => c.id === parseInt(formData.category_id))?.name} (${categories.find((c) => c.id === parseInt(formData.category_id))?.code})`
+                      : "Select category"}
+                  </span>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3zm-3.76 9.2a.75.75 0 011.06.04l2.7 2.908 2.7-2.908a.75.75 0 111.1 1.02l-3.25 3.5a.75.75 0 01-1.1 0l-3.25-3.5a.75.75 0 01.04-1.06z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                </Listbox.Button>
+                <Transition
+                  as={Fragment}
+                  leave="transition ease-in duration-100"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-50">
+                    {categories.map((category) => (
+                      <Listbox.Option
+                        key={category.id}
+                        value={category.id}
+                        className={({ active }) =>
+                          `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
+                            active
+                              ? "bg-[#1769ff]/10 text-[#1769ff]"
+                              : "text-gray-900"
+                          }`
+                        }
+                      >
+                        {({ selected }) => (
+                          <>
+                            <span
+                              className={`block truncate ${
+                                selected ? "font-medium" : "font-normal"
+                              }`}
+                            >
+                              {category.name} ({category.code})
+                            </span>
+                            {selected && (
+                              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#1769ff]">
+                                <svg
+                                  className="h-5 w-5"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Transition>
+              </div>
+            </Listbox>
             {errors.category_id && (
               <p className="mt-1 text-sm text-red-500">{errors.category_id}</p>
             )}
@@ -205,7 +278,7 @@ export default function AddModelPage() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d26a]/20 focus:border-[#00d26a] transition-colors ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors ${
                 errors.name ? "border-red-300" : "border-gray-200"
               }`}
               placeholder="e.g., Bosch"
@@ -230,7 +303,7 @@ export default function AddModelPage() {
               value={formData.brand_code}
               onChange={handleChange}
               maxLength={10}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d26a]/20 focus:border-[#00d26a] transition-colors uppercase ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors uppercase ${
                 errors.brand_code ? "border-red-300" : "border-gray-200"
               }`}
               placeholder="e.g., BSH"
@@ -245,10 +318,10 @@ export default function AddModelPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-4 pt-4">
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1769ff] text-white rounded-lg hover:bg-[#0052cc] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#1769ff] text-white rounded-lg hover:bg-[#0052cc] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed data-[active]:bg-[#0052cc]"
             >
               <svg
                 className="w-5 h-5"
@@ -264,7 +337,7 @@ export default function AddModelPage() {
                 />
               </svg>
               {isSubmitting ? "Adding..." : "Add Model"}
-            </button>
+            </Button>
             <Link
               href="/inventory-manager/add"
               className="px-6 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"

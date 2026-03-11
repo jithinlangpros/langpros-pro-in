@@ -152,7 +152,7 @@ export default function AddCategoryPage() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d26a]/20 focus:border-[#00d26a] transition-colors ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors ${
                 errors.name ? "border-red-300" : "border-gray-200"
               }`}
               placeholder="e.g., Control Unit"
@@ -177,7 +177,7 @@ export default function AddCategoryPage() {
               value={formData.code}
               onChange={handleChange}
               maxLength={10}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00d26a]/20 focus:border-[#00d26a] transition-colors uppercase ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors uppercase ${
                 errors.code ? "border-red-300" : "border-gray-200"
               }`}
               placeholder="e.g., CCU"

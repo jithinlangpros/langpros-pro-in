@@ -8,6 +8,28 @@ export default async function InventoryManagerDashboard() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Fetch counts from assets table
+  const [totalItemsData, damagedData, availableData] = await Promise.all([
+    supabase
+      .from("assets")
+      .select("*", { count: "exact", head: true })
+      .eq("is_deleted", false),
+    supabase
+      .from("assets")
+      .select("*", { count: "exact", head: true })
+      .eq("condition", "damaged")
+      .eq("is_deleted", false),
+    supabase
+      .from("assets")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "available")
+      .eq("is_deleted", false),
+  ]);
+
+  const totalItems = totalItemsData.count || 0;
+  const damagedItems = damagedData.count || 0;
+  const availableItems = availableData.count || 0;
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -38,7 +60,7 @@ export default async function InventoryManagerDashboard() {
           <p className="text-gray-500 mt-1">Track and manage your inventory</p>
         </div>
 
-        {/* Stats cards - Behance style grid */}
+        {/* Stats cards -  style grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <div className="border border-gray-100 rounded-lg p-6">
             <div className="w-12 h-12 bg-[#00d26a]/10 rounded-lg flex items-center justify-center mb-4">
@@ -56,7 +78,7 @@ export default async function InventoryManagerDashboard() {
                 />
               </svg>
             </div>
-            <p className="text-4xl font-bold text-gray-900">156</p>
+            <p className="text-4xl font-bold text-gray-900">{totalItems}</p>
             <p className="text-sm text-gray-500 mt-1">Total Items</p>
           </div>
           <div className="border border-gray-100 rounded-lg p-6">
@@ -75,8 +97,8 @@ export default async function InventoryManagerDashboard() {
                 />
               </svg>
             </div>
-            <p className="text-4xl font-bold text-gray-900">12</p>
-            <p className="text-sm text-gray-500 mt-1">Low Stock</p>
+            <p className="text-4xl font-bold text-gray-900">{damagedItems}</p>
+            <p className="text-sm text-gray-500 mt-1">Damaged Items</p>
           </div>
           <div className="border border-gray-100 rounded-lg p-6">
             <div className="w-12 h-12 bg-[#1769ff]/10 rounded-lg flex items-center justify-center mb-4">
@@ -94,8 +116,8 @@ export default async function InventoryManagerDashboard() {
                 />
               </svg>
             </div>
-            <p className="text-4xl font-bold text-gray-900">89</p>
-            <p className="text-sm text-gray-500 mt-1">In Stock</p>
+            <p className="text-4xl font-bold text-gray-900">{availableItems}</p>
+            <p className="text-sm text-gray-500 mt-1">Available Items</p>
           </div>
         </div>
 
