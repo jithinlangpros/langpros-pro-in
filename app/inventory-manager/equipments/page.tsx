@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/client";
 import { signOut } from "@/app/actions";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Asset {
   id: number;
@@ -18,15 +19,21 @@ interface Asset {
   status: string;
   created_at: string;
   models_id: number;
-  models: {
-    name: string;
-    brand_code: string;
-  }[];
+  models:
+    | {
+        name: string;
+        brand_code: string;
+      }
+    | {
+        name: string;
+        brand_code: string;
+      }[];
 }
 
 const ITEMS_PER_PAGE = 10;
 
 export default function EquipmentsPage() {
+  const router = useRouter();
   const supabase = createClient();
   const [userEmail, setUserEmail] = useState<string>("");
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -34,6 +41,7 @@ export default function EquipmentsPage() {
   const [error, setError] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -46,19 +54,27 @@ export default function EquipmentsPage() {
         setUserEmail(user.email || "");
       }
 
-      // Get total count
-      const { count } = await supabase
+      // Get total count with search filter
+      let countQuery = supabase
         .from("assets")
         .select("*", { count: "exact", head: true })
         .eq("is_deleted", false);
 
+      if (searchQuery.trim()) {
+        const searchTerm = searchQuery.trim();
+        countQuery = countQuery.or(
+          `asset_code.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%`,
+        );
+      }
+
+      const { count } = await countQuery;
       setTotalCount(count || 0);
 
       // Get paginated data
       const from = (currentPage - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("assets")
         .select(
           `
@@ -79,20 +95,31 @@ export default function EquipmentsPage() {
             brand_code
           )
         `,
+          { count: "exact" },
         )
         .eq("is_deleted", false)
-        .order("created_at", { ascending: false })
-        .range(from, to);
+        .order("created_at", { ascending: false });
+
+      // Apply search filter
+      if (searchQuery.trim()) {
+        const searchTerm = searchQuery.trim();
+        query = query.or(
+          `asset_code.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%`,
+        );
+      }
+
+      const { data, error } = await query.range(from, to);
 
       if (error) {
         setError(error.message);
       } else {
+        console.log("Equipments List:", data);
         setAssets(data || []);
       }
       setLoading(false);
     }
     fetchData();
-  }, [supabase, currentPage]);
+  }, [supabase, currentPage, searchQuery]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -177,19 +204,18 @@ export default function EquipmentsPage() {
           <span className="text-gray-900">Equipments</span>
         </div>
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">All Equipments</h1>
-            <p className="text-gray-500 mt-1">
-              View and manage your inventory ({totalCount} total)
-            </p>
-          </div>
-          <Link
-            href="/inventory-manager/add"
-            className="flex items-center gap-2 px-4 py-2 bg-[#1769ff] text-white rounded-lg hover:bg-[#0052cc] transition-colors font-medium"
-          >
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">All Equipments</h1>
+          <p className="text-gray-500 mt-1">
+            View and manage your inventory ({totalCount} total)
+          </p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
             <svg
-              className="w-5 h-5"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -198,11 +224,20 @@ export default function EquipmentsPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M12 4v16m8-8H4"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            Add Asset
-          </Link>
+            <input
+              type="text"
+              placeholder="Search by asset code or serial number..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors"
+            />
+          </div>
         </div>
 
         {/* Loading State */}
@@ -236,12 +271,6 @@ export default function EquipmentsPage() {
                       Serial Number
                     </th>
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Supplier
-                    </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Purchase Date
-                    </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                       Price
                     </th>
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
@@ -256,29 +285,29 @@ export default function EquipmentsPage() {
                   {assets.map((asset) => (
                     <tr
                       key={asset.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() =>
+                        router.push(`/inventory-manager/equipments/${asset.id}`)
+                      }
                     >
                       <td className="px-6 py-4">
-                        <Link
-                          href={`/inventory-manager/equipments/${asset.id}`}
-                          className="text-sm font-medium text-[#1769ff] hover:underline"
-                        >
+                        <span className="text-sm font-medium text-[#1769ff]">
                           {asset.asset_code}
-                        </Link>
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {asset.models && asset.models.length > 0
-                          ? asset.models[0].name
+                        {asset.models
+                          ? typeof asset.models === "object" &&
+                            "name" in asset.models
+                            ? `${(asset.models as { name: string; brand_code: string }).name} (${(asset.models as { name: string; brand_code: string }).brand_code})`
+                            : Array.isArray(asset.models) &&
+                                asset.models.length > 0
+                              ? `${asset.models[0].name} (${asset.models[0].brand_code})`
+                              : "-"
                           : "-"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 font-mono">
                         {asset.serial_number}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {asset.supplier_name}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {formatDate(asset.purchase_date)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {formatPrice(asset.purchase_price)}
