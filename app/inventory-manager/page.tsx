@@ -1,12 +1,29 @@
 import { createClient } from "@/utils/supabase/server";
 import { signOut } from "@/app/actions";
 import Link from "next/link";
+import Button from "@/components/Button";
 
 export default async function InventoryManagerDashboard() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Fetch user role
+  const { data: roleData } = await supabase
+    .from("user_roles")
+    .select("user_role")
+    .eq("user_email", user?.email)
+    .single();
+
+  const userRole = roleData?.user_role || "inventory";
+  const roleTitles: Record<string, string> = {
+    inventory: "Inventory Manager",
+    project: "Project Manager",
+    tech: "Technician",
+    admin: "Administrator",
+  };
+  const roleTitle = roleTitles[userRole] || "User";
 
   // Fetch counts from assets table
   const [totalItemsData, damagedData, availableData] = await Promise.all([
@@ -43,9 +60,9 @@ export default async function InventoryManagerDashboard() {
           <div className="flex items-center gap-6">
             <span className="text-sm text-gray-500">{user?.email}</span>
             <form action={signOut}>
-              <button className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <Button variant="secondary" type="submit">
                 Sign out
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -55,7 +72,7 @@ export default async function InventoryManagerDashboard() {
       <main className="max-w-6xl mx-auto px-6 py-12">
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-gray-900">
-            Inventory Manager
+            Welcome back, {roleTitle}
           </h1>
           <p className="text-gray-500 mt-1">Track and manage your inventory</p>
         </div>
@@ -188,7 +205,7 @@ export default async function InventoryManagerDashboard() {
             You have full access to the Inventory Manager dashboard.
           </p>
           <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded text-sm font-medium">
-            Role: inv
+            Role: {roleTitle}
           </div>
         </div>
       </main>

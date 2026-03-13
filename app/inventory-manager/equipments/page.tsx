@@ -5,29 +5,25 @@ import { signOut } from "@/app/actions";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Button from "@/components/Button";
 
 interface Asset {
-  id: number;
-  asset_code: string;
+  id: string;
+  sku: string;
   serial_number: string;
-  supplier_name: string;
-  invoice_number: string;
-  purchase_date: string;
-  purchase_price: number;
-  description: string;
-  condition: string;
   status: string;
+  condition: string;
+  location: string;
+  purchase_date: string;
+  warranty_expiry: string;
+  notes: string;
   created_at: string;
-  models_id: number;
-  models:
-    | {
-        name: string;
-        brand_code: string;
-      }
-    | {
-        name: string;
-        brand_code: string;
-      }[];
+  model_id: string;
+  models: {
+    name: string;
+    brand: string;
+    code: string;
+  }[];
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -58,12 +54,12 @@ export default function EquipmentsPage() {
       let countQuery = supabase
         .from("assets")
         .select("*", { count: "exact", head: true })
-        .eq("is_deleted", false);
+        .eq("is_active", true);
 
       if (searchQuery.trim()) {
         const searchTerm = searchQuery.trim();
         countQuery = countQuery.or(
-          `asset_code.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%`,
+          `sku.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%`,
         );
       }
 
@@ -79,32 +75,32 @@ export default function EquipmentsPage() {
         .select(
           `
           id,
-          asset_code,
+          sku,
           serial_number,
-          supplier_name,
-          invoice_number,
-          purchase_date,
-          purchase_price,
-          description,
-          condition,
           status,
+          condition,
+          location,
+          purchase_date,
+          warranty_expiry,
+          notes,
           created_at,
-          models_id,
-          models:models_id (
+          model_id,
+          models:model_id(
             name,
-            brand_code
+            brand,
+            code
           )
         `,
           { count: "exact" },
         )
-        .eq("is_deleted", false)
+        .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       // Apply search filter
       if (searchQuery.trim()) {
         const searchTerm = searchQuery.trim();
         query = query.or(
-          `asset_code.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%`,
+          `sku.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%`,
         );
       }
 
@@ -125,7 +121,7 @@ export default function EquipmentsPage() {
     switch (status) {
       case "available":
         return "bg-[#00d26a]/10 text-[#00d26a]";
-      case "assigned":
+      case "rented":
         return "bg-[#1769ff]/10 text-[#1769ff]";
       case "maintenance":
         return "bg-[#ffbd2e]/10 text-[#ffbd2e]";
@@ -185,9 +181,9 @@ export default function EquipmentsPage() {
           <div className="flex items-center gap-6">
             <span className="text-sm text-gray-500">{userEmail}</span>
             <form action={signOut}>
-              <button className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <Button variant="secondary" type="submit">
                 Sign out
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -262,7 +258,7 @@ export default function EquipmentsPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Asset Code
+                      SKU
                     </th>
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                       Model
@@ -271,7 +267,7 @@ export default function EquipmentsPage() {
                       Serial Number
                     </th>
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
-                      Price
+                      Location
                     </th>
                     <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                       Condition
@@ -292,25 +288,19 @@ export default function EquipmentsPage() {
                     >
                       <td className="px-6 py-4">
                         <span className="text-sm font-medium text-[#1769ff]">
-                          {asset.asset_code}
+                          {asset.sku}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {asset.models
-                          ? typeof asset.models === "object" &&
-                            "name" in asset.models
-                            ? `${(asset.models as { name: string; brand_code: string }).name} (${(asset.models as { name: string; brand_code: string }).brand_code})`
-                            : Array.isArray(asset.models) &&
-                                asset.models.length > 0
-                              ? `${asset.models[0].name} (${asset.models[0].brand_code})`
-                              : "-"
+                        {asset.models && asset.models.length > 0
+                          ? `${asset.models[0].name} (${asset.models[0].brand})`
                           : "-"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 font-mono">
-                        {asset.serial_number}
+                        {asset.serial_number || "-"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {formatPrice(asset.purchase_price)}
+                        {asset.location || "-"}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -358,11 +348,8 @@ export default function EquipmentsPage() {
             <p className="text-gray-500 mb-4">
               Get started by adding your first asset
             </p>
-            <Link
-              href="/inventory-manager/add"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#00d26a] text-white rounded-lg hover:bg-[#00b85c] transition-colors font-medium"
-            >
-              Add First Asset
+            <Link href="/inventory-manager/add">
+              <Button variant="primary">Add First Asset</Button>
             </Link>
           </div>
         )}

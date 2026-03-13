@@ -5,6 +5,7 @@ import { signOut } from "@/app/actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Button from "@/components/Button";
 
 interface FormErrors {
   name?: string;
@@ -103,9 +104,9 @@ export default function AddCategoryPage() {
           <div className="flex items-center gap-6">
             <span className="text-sm text-gray-500">{userEmail}</span>
             <form action={signOut}>
-              <button className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <Button variant="secondary" type="submit">
                 Sign out
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -192,11 +193,7 @@ export default function AddCategoryPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1769ff] text-white rounded-lg hover:bg-[#0052cc] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={isSubmitting}>
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -211,12 +208,9 @@ export default function AddCategoryPage() {
                 />
               </svg>
               {isSubmitting ? "Adding..." : "Add Category"}
-            </button>
-            <Link
-              href="/inventory-manager/add"
-              className="px-6 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Cancel
+            </Button>
+            <Link href="/inventory-manager/add">
+              <Button variant="secondary">Cancel</Button>
             </Link>
           </div>
         </form>

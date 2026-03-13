@@ -5,29 +5,25 @@ import { signOut } from "@/app/actions";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Button from "@/components/Button";
 
 interface Asset {
-  id: number;
-  asset_code: string;
+  id: string;
+  sku: string;
   serial_number: string;
-  supplier_name: string;
-  invoice_number: string;
-  purchase_date: string;
-  purchase_price: number;
-  description: string;
-  condition: string;
   status: string;
+  condition: string;
+  location: string;
+  purchase_date: string;
+  warranty_expiry: string;
+  notes: string;
   created_at: string;
-  models_id: number;
-  models:
-    | {
-        name: string;
-        brand_code: string;
-      }
-    | {
-        name: string;
-        brand_code: string;
-      }[];
+  model_id: string;
+  models: {
+    name: string;
+    brand: string;
+    code: string;
+  }[];
 }
 
 export default function AssetDetailPage() {
@@ -41,11 +37,10 @@ export default function AssetDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     serial_number: "",
-    supplier_name: "",
-    invoice_number: "",
     purchase_date: "",
-    purchase_price: 0,
-    description: "",
+    warranty_expiry: "",
+    location: "",
+    notes: "",
     condition: "",
     status: "",
   });
@@ -65,20 +60,20 @@ export default function AssetDetailPage() {
         .select(
           `
           id,
-          asset_code,
+          sku,
           serial_number,
-          supplier_name,
-          invoice_number,
-          purchase_date,
-          purchase_price,
-          description,
-          condition,
           status,
+          condition,
+          location,
+          purchase_date,
+          warranty_expiry,
+          notes,
           created_at,
-          models_id,
-          models:models_id (
+          model_id,
+          models:model_id(
             name,
-            brand_code
+            brand,
+            code
           )
         `,
         )
@@ -100,11 +95,10 @@ export default function AssetDetailPage() {
     if (asset) {
       setEditForm({
         serial_number: asset.serial_number || "",
-        supplier_name: asset.supplier_name || "",
-        invoice_number: asset.invoice_number || "",
         purchase_date: asset.purchase_date || "",
-        purchase_price: asset.purchase_price || 0,
-        description: asset.description || "",
+        warranty_expiry: asset.warranty_expiry || "",
+        location: asset.location || "",
+        notes: asset.notes || "",
         condition: asset.condition || "",
         status: asset.status || "",
       });
@@ -120,11 +114,10 @@ export default function AssetDetailPage() {
       .from("assets")
       .update({
         serial_number: editForm.serial_number,
-        supplier_name: editForm.supplier_name,
-        invoice_number: editForm.invoice_number,
         purchase_date: editForm.purchase_date,
-        purchase_price: editForm.purchase_price,
-        description: editForm.description,
+        warranty_expiry: editForm.warranty_expiry,
+        location: editForm.location,
+        notes: editForm.notes,
         condition: editForm.condition,
         status: editForm.status,
       })
@@ -139,20 +132,20 @@ export default function AssetDetailPage() {
         .select(
           `
           id,
-          asset_code,
+          sku,
           serial_number,
-          supplier_name,
-          invoice_number,
-          purchase_date,
-          purchase_price,
-          description,
-          condition,
           status,
+          condition,
+          location,
+          purchase_date,
+          warranty_expiry,
+          notes,
           created_at,
-          models_id,
-          models:models_id (
+          model_id,
+          models:model_id(
             name,
-            brand_code
+            brand,
+            code
           )
         `,
         )
@@ -234,11 +227,8 @@ export default function AssetDetailPage() {
           <p className="text-gray-500 mb-4">
             {error || "The asset you are looking for does not exist."}
           </p>
-          <Link
-            href="/inventory-manager/equipments"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1769ff] text-white rounded-lg hover:bg-[#0052cc] transition-colors font-medium"
-          >
-            Back to Equipments
+          <Link href="/inventory-manager/equipments">
+            <Button variant="primary">Back to Equipments</Button>
           </Link>
         </div>
       </div>
@@ -258,9 +248,9 @@ export default function AssetDetailPage() {
           <div className="flex items-center gap-6">
             <span className="text-sm text-gray-500">{userEmail}</span>
             <form action={signOut}>
-              <button className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+              <Button variant="secondary" type="submit">
                 Sign out
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -281,21 +271,15 @@ export default function AssetDetailPage() {
             Equipments
           </Link>
           <span>/</span>
-          <span className="text-gray-900">{asset.asset_code}</span>
+          <span className="text-gray-900">{asset.sku}</span>
         </div>
 
         <div className="flex flex-col mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {asset.asset_code}
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">{asset.sku}</h1>
             <p className="text-gray-500 mt-1">
-              {asset.models
-                ? typeof asset.models === "object" && "name" in asset.models
-                  ? `${(asset.models as { name: string; brand_code: string }).name} (${(asset.models as { name: string; brand_code: string }).brand_code})`
-                  : Array.isArray(asset.models) && asset.models.length > 0
-                    ? `${asset.models[0].name} (${asset.models[0].brand_code})`
-                    : "Unknown Model"
+              {asset.models && asset.models.length > 0
+                ? `${asset.models[0].name} (${asset.models[0].brand})`
                 : "Unknown Model"}
             </p>
           </div>
@@ -313,10 +297,7 @@ export default function AssetDetailPage() {
               </span>
             </div>
             {!isEditing ? (
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1769ff] text-white rounded-lg hover:bg-[#0052cc] transition-colors font-medium"
-              >
+              <Button variant="primary">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -331,23 +312,23 @@ export default function AssetDetailPage() {
                   />
                 </svg>
                 Edit
-              </button>
+              </Button>
             ) : (
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#00d26a] text-white rounded-lg hover:bg-[#00b058] transition-colors font-medium disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Save"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={handleCancel}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -376,30 +357,14 @@ export default function AssetDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500">Supplier Name</label>
+                  <label className="text-sm text-gray-500">Location</label>
                   <input
                     type="text"
-                    value={editForm.supplier_name}
+                    value={editForm.location}
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
-                        supplier_name: e.target.value,
-                      })
-                    }
-                    className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff]"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">
-                    Invoice Number
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.invoice_number}
-                    onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        invoice_number: e.target.value,
+                        location: e.target.value,
                       })
                     }
                     className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff]"
@@ -421,16 +386,15 @@ export default function AssetDetailPage() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-500">
-                    Purchase Price
+                    Warranty Expiry
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    value={editForm.purchase_price}
+                    type="date"
+                    value={editForm.warranty_expiry}
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
-                        purchase_price: parseFloat(e.target.value) || 0,
+                        warranty_expiry: e.target.value,
                       })
                     }
                     className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff]"
@@ -444,11 +408,11 @@ export default function AssetDetailPage() {
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-gray-500">Description</label>
+                  <label className="text-sm text-gray-500">Notes</label>
                   <textarea
-                    value={editForm.description}
+                    value={editForm.notes}
                     onChange={(e) =>
-                      setEditForm({ ...editForm, description: e.target.value })
+                      setEditForm({ ...editForm, notes: e.target.value })
                     }
                     rows={3}
                     className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff]"
@@ -490,43 +454,35 @@ export default function AssetDetailPage() {
             </h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Asset Code</p>
-                <p className="text-gray-900 font-medium">{asset.asset_code}</p>
+                <p className="text-sm text-gray-500">SKU</p>
+                <p className="text-gray-900 font-medium">{asset.sku}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Serial Number</p>
-                <p className="text-gray-900 font-mono">{asset.serial_number}</p>
+                <p className="text-gray-900 font-mono">
+                  {asset.serial_number || "-"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Model</p>
                 <p className="text-gray-900">
-                  {asset.models
-                    ? typeof asset.models === "object" && "name" in asset.models
-                      ? `${(asset.models as { name: string; brand_code: string }).name} (${(asset.models as { name: string; brand_code: string }).brand_code})`
-                      : Array.isArray(asset.models) && asset.models.length > 0
-                        ? `${asset.models[0].name} (${asset.models[0].brand_code})`
-                        : "-"
+                  {asset.models && asset.models.length > 0
+                    ? `${asset.models[0].name} (${asset.models[0].brand})`
                     : "-"}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Purchase Information */}
+          {/* Location & Warranty */}
           <div className="border border-gray-100 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Purchase Information
+              Location & Warranty
             </h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Supplier</p>
-                <p className="text-gray-900">{asset.supplier_name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Invoice Number</p>
-                <p className="text-gray-900 font-mono">
-                  {asset.invoice_number}
-                </p>
+                <p className="text-sm text-gray-500">Location</p>
+                <p className="text-gray-900">{asset.location || "-"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Purchase Date</p>
@@ -535,21 +491,21 @@ export default function AssetDetailPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Purchase Price</p>
-                <p className="text-gray-900 font-medium">
-                  {formatPrice(asset.purchase_price)}
+                <p className="text-sm text-gray-500">Warranty Expiry</p>
+                <p className="text-gray-900">
+                  {formatDate(asset.warranty_expiry)}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Description */}
-          {asset.description && (
+          {/* Notes */}
+          {asset.notes && (
             <div className="border border-gray-100 rounded-lg p-6 md:col-span-2">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Description
+                Notes
               </h3>
-              <p className="text-gray-600">{asset.description}</p>
+              <p className="text-gray-600">{asset.notes}</p>
             </div>
           )}
 
@@ -563,17 +519,11 @@ export default function AssetDetailPage() {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-4 mt-8">
-          <Link
-            href="/inventory-manager/equipments"
-            className="px-6 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            Back to Equipments
+          <Link href="/inventory-manager/equipments">
+            <Button variant="secondary">Back to Equipments</Button>
           </Link>
-          <Link
-            href="/inventory-manager/add"
-            className="px-6 py-2.5 bg-[#1769ff] text-white rounded-lg hover:bg-[#0052cc] transition-colors font-medium"
-          >
-            Add New Asset
+          <Link href="/inventory-manager/add">
+            <Button variant="primary">Add New Asset</Button>
           </Link>
         </div>
       </main>

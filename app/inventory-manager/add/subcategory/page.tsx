@@ -14,42 +14,25 @@ interface Category {
   code: string;
 }
 
-interface Subcategory {
-  id: string;
-  category_id: string;
-  name: string;
-  code: string;
-}
-
 interface FormErrors {
   category_id?: string;
-  subcategory_id?: string;
   name?: string;
-  brand?: string;
   code?: string;
-  description?: string;
 }
 
-export default function AddModelPage() {
+export default function AddSubcategoryPage() {
   const router = useRouter();
   const supabase = createClient();
   const [userEmail, setUserEmail] = useState<string>("");
   const [categories, setCategories] = useState<Category[]>([]);
-  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-  const [filteredSubcategories, setFilteredSubcategories] = useState<
-    Subcategory[]
-  >([]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string>("");
 
   const [formData, setFormData] = useState({
     category_id: "",
-    subcategory_id: "",
     name: "",
-    brand: "",
     code: "",
-    description: "",
   });
 
   useEffect(() => {
@@ -66,42 +49,15 @@ export default function AddModelPage() {
         .select("id, name, code")
         .order("name");
 
-      const { data: subcategoriesData } = await supabase
-        .from("subcategories")
-        .select("id, category_id, name, code")
-        .order("name");
-
       if (categoriesData) {
         setCategories(categoriesData);
-      }
-
-      if (subcategoriesData) {
-        setSubcategories(subcategoriesData);
       }
     }
     fetchData();
   }, [supabase]);
 
-  // Filter subcategories when category changes
-  useEffect(() => {
-    if (formData.category_id) {
-      const filtered = subcategories.filter(
-        (s) => s.category_id === formData.category_id,
-      );
-      setFilteredSubcategories(filtered);
-    } else {
-      setFilteredSubcategories([]);
-    }
-    // Reset subcategory selection when category changes
-    if (formData.subcategory_id) {
-      setFormData((prev) => ({ ...prev, subcategory_id: "" }));
-    }
-  }, [formData.category_id, subcategories]);
-
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -117,17 +73,11 @@ export default function AddModelPage() {
     if (!formData.category_id) {
       newErrors.category_id = "Category is required";
     }
-    if (!formData.subcategory_id) {
-      newErrors.subcategory_id = "Subcategory is required";
-    }
     if (!formData.name.trim()) {
-      newErrors.name = "Model name is required";
-    }
-    if (!formData.brand.trim()) {
-      newErrors.brand = "Brand is required";
+      newErrors.name = "Subcategory name is required";
     }
     if (!formData.code.trim()) {
-      newErrors.code = "Model code is required";
+      newErrors.code = "Subcategory code is required";
     } else if (formData.code.length > 10) {
       newErrors.code = "Code must be 10 characters or less";
     }
@@ -147,12 +97,10 @@ export default function AddModelPage() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("models").insert({
-        subcategory_id: formData.subcategory_id,
+      const { error } = await supabase.from("subcategories").insert({
+        category_id: formData.category_id,
         name: formData.name.trim(),
-        brand: formData.brand.trim(),
         code: formData.code.trim().toUpperCase(),
-        description: formData.description.trim() || null,
       });
 
       if (error) {
@@ -197,13 +145,15 @@ export default function AddModelPage() {
             Add Asset
           </Link>
           <span>/</span>
-          <span className="text-gray-900">Add Model</span>
+          <span className="text-gray-900">Add Subcategory</span>
         </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Add New Model</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Add New Subcategory
+          </h1>
           <p className="text-gray-500 mt-1">
-            Create a new model/brand for your inventory
+            Create a new subcategory within a category
           </p>
         </div>
 
@@ -214,7 +164,7 @@ export default function AddModelPage() {
           </div>
         )}
 
-        {/* Add Model Form */}
+        {/* Add Subcategory Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Category Selection */}
           <div>
@@ -315,150 +265,13 @@ export default function AddModelPage() {
             )}
           </div>
 
-          {/* Subcategory Selection */}
-          <div>
-            <label
-              htmlFor="subcategory_id"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Subcategory *
-            </label>
-            <Listbox
-              value={formData.subcategory_id}
-              onChange={(value) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  subcategory_id: String(value),
-                }));
-                setErrors((prev) => ({ ...prev, subcategory_id: undefined }));
-              }}
-            >
-              <div className="relative mt-1">
-                <Listbox.Button
-                  className={`relative w-full cursor-pointer rounded-lg bg-white py-2 pl-3 pr-10 text-left border focus:outline-none focus-visible:border-[#1769ff] focus-visible:ring-2 focus-visible:ring-[#1769ff]/20 transition-colors ${
-                    errors.subcategory_id ? "border-red-300" : "border-gray-200"
-                  } ${
-                    !formData.category_id
-                      ? "bg-gray-100 cursor-not-allowed"
-                      : ""
-                  }`}
-                  disabled={!formData.category_id}
-                >
-                  <span
-                    className={`block truncate ${!formData.category_id ? "text-gray-400" : ""}`}
-                  >
-                    {filteredSubcategories.find(
-                      (s) => s.id === formData.subcategory_id,
-                    )
-                      ? `${filteredSubcategories.find((s) => s.id === formData.subcategory_id)?.name} (${filteredSubcategories.find((s) => s.id === formData.subcategory_id)?.code})`
-                      : formData.category_id
-                        ? "Select subcategory"
-                        : "Select category first"}
-                  </span>
-                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                    <svg
-                      className="h-5 w-5 text-gray-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3zm-3.76 9.2a.75.75 0 011.06.04l2.7 2.908 2.7-2.908a.75.75 0 111.1 1.02l-3.25 3.5a.75.75 0 01-1.1 0l-3.25-3.5a.75.75 0 01.04-1.06z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </span>
-                </Listbox.Button>
-                <Transition
-                  as={Fragment}
-                  leave="transition ease-in duration-100"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-50">
-                    {filteredSubcategories.length === 0 ? (
-                      <div className="py-2 pl-4 pr-4 text-gray-500 text-sm">
-                        No subcategories available
-                      </div>
-                    ) : (
-                      filteredSubcategories.map((subcategory) => (
-                        <Listbox.Option
-                          key={subcategory.id}
-                          value={subcategory.id}
-                          className={({ active }) =>
-                            `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
-                              active
-                                ? "bg-[#1769ff]/10 text-[#1769ff]"
-                                : "text-gray-900"
-                            }`
-                          }
-                        >
-                          {({ selected }) => (
-                            <>
-                              <span
-                                className={`block truncate ${
-                                  selected ? "font-medium" : "font-normal"
-                                }`}
-                              >
-                                {subcategory.name} ({subcategory.code})
-                              </span>
-                              {selected && (
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#1769ff]">
-                                  <svg
-                                    className="h-5 w-5"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </Listbox.Option>
-                      ))
-                    )}
-                  </Listbox.Options>
-                </Transition>
-              </div>
-            </Listbox>
-            {errors.subcategory_id && (
-              <p className="mt-1 text-sm text-red-500">
-                {errors.subcategory_id}
-              </p>
-            )}
-            <Link
-              href="/inventory-manager/add/subcategory"
-              className="mt-2 inline-flex items-center gap-1 text-sm text-[#1769ff] hover:underline"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Add new subcategory
-            </Link>
-          </div>
-
-          {/* Model Name */}
+          {/* Subcategory Name */}
           <div>
             <label
               htmlFor="name"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Model Name *
+              Subcategory Name *
             </label>
             <input
               type="text"
@@ -469,44 +282,20 @@ export default function AddModelPage() {
               className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors ${
                 errors.name ? "border-red-300" : "border-gray-200"
               }`}
-              placeholder="e.g., Allen & Heath SQ-5"
+              placeholder="e.g., Mixers"
             />
             {errors.name && (
               <p className="mt-1 text-sm text-red-500">{errors.name}</p>
             )}
           </div>
 
-          {/* Brand */}
-          <div>
-            <label
-              htmlFor="brand"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Brand *
-            </label>
-            <input
-              type="text"
-              id="brand"
-              name="brand"
-              value={formData.brand}
-              onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors ${
-                errors.brand ? "border-red-300" : "border-gray-200"
-              }`}
-              placeholder="e.g., Allen & Heath"
-            />
-            {errors.brand && (
-              <p className="mt-1 text-sm text-red-500">{errors.brand}</p>
-            )}
-          </div>
-
-          {/* Model Code */}
+          {/* Subcategory Code */}
           <div>
             <label
               htmlFor="code"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Model Code *
+              Subcategory Code *
             </label>
             <input
               type="text"
@@ -518,7 +307,7 @@ export default function AddModelPage() {
               className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors uppercase ${
                 errors.code ? "border-red-300" : "border-gray-200"
               }`}
-              placeholder="e.g., SQ5"
+              placeholder="e.g., MIX"
             />
             {errors.code && (
               <p className="mt-1 text-sm text-red-500">{errors.code}</p>
@@ -526,25 +315,6 @@ export default function AddModelPage() {
             <p className="mt-1 text-xs text-gray-500">
               Short code for asset code generation (max 10 characters)
             </p>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1769ff]/20 focus:border-[#1769ff] transition-colors"
-              placeholder="Enter description"
-            />
           </div>
 
           {/* Action Buttons */}
@@ -563,7 +333,7 @@ export default function AddModelPage() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              {isSubmitting ? "Adding..." : "Add Model"}
+              {isSubmitting ? "Adding..." : "Add Subcategory"}
             </Button>
             <Link href="/inventory-manager/add">
               <Button variant="secondary">Cancel</Button>
